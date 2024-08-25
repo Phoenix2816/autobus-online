@@ -13,50 +13,61 @@ const port = 3000;
 
 const app = express();
 
+app.use(express.static(path.join(__dirname, "public")))
+
 const loadBuses = async() => {
     const data = await readFile(path.join(__dirname, "buses.json"), "utf-8")
     return JSON.parse(data)
 };
+
+
 const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
     const now = DateTime.now().setZone(timeZone);
     const [hours, minutes] = firstDepartureTime.split(":").map(Number);
 
 
-    let departure = DateTime.now().set({ hours, minutes, seconds: 0, milliseconds: 0 }).setZone(timeZone)
+    let departure = DateTime.now()
+        .set({ hours, minutes, seconds: 0, milliseconds: 0 })
+        .setZone(timeZone)
 
     if (now > departure) {
         departure = departure.plus({ minutes: frequencyMinutes })
     }
 
-    const endOfDay = DateTime.now().set({ hours: 22, minutes: 59, seconds: 59 }).setZone(timeZone)
+    const endOfDay = DateTime.now()
+        .set({ hours: 22, minutes: 59, seconds: 59 })
+        .setZone(timeZone)
 
     if (departure > endOfDay) {
-        departure = departure.startOf('day').plus({ days: 1 }).set({ hours, minutes })
+        departure = departure
+            .startOf('day')
+            .plus({ days: 1 })
+            .set({ hours, minutes })
     }
 
     while (now > departure) {
         departure = departure.plus({ minutes: frequencyMinutes })
         if (departure > endOfDay) {
-            departure = departure.startOf('day').plus({ days: 1 }).set({ hours, minutes })
+            departure = departure
+                .startOf('day')
+                .plus({ days: 1 })
+                .set({ hours, minutes })
         }
     }
 
     return departure
 }
 
-
 const sendUptatedData = async() => {
     const buses = await loadBuses();
 
     const updatedBuses = buses.map(bus => {
-        const nextDeparture = getNextDeparture(bus.firstDepartureTime,
-            bus.frequencyMinutes
-        );
+        const nextDeparture = getNextDeparture(bus.firstDepartureTime, bus.frequencyMinutes);
 
         return {...bus,
             nextDeparture: {
-                data: nextDeparture.toFormat("yyyy-mm-dd"),
-                time: nextDeparture.toFormat("hh:mm:ss")
+                date: nextDeparture.toFormat("yyyy-MM-dd"),
+                time: nextDeparture.toFormat("HH:mm:ss"),
             }
         }
     })
@@ -64,12 +75,20 @@ const sendUptatedData = async() => {
     return updatedBuses
 };
 
+const sortBuses = (buses) => [...buses].sort(
+    (a, b) =>
+    new Date(`${a.nextDeparture.date}T${a.nextDeparture.time}Z`) -
+    new Date(`${b.nextDeparture.date}T${b.nextDeparture.time}Z`),
+);
+
+
+
 app.get("/next-departure", async(req, res) => {
 
     try {
         const updatedBuses = await sendUptatedData();
-
-        res.json(updatedBuses)
+        const sortedBuses = sortBuses(updatedBuses)
+        res.json(sortedBuses)
 
     } catch (error) {
         res.send(error)
@@ -77,5 +96,5 @@ app.get("/next-departure", async(req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(port);
+    console.log("http://localhost:" + port);
 });
