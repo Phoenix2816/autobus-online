@@ -68,7 +68,7 @@ const sendUptatedData = async() => {
         );
 
         const timeRemaining = DateTime.fromMillis(
-            nextDeparture.diff(now).toMillis() - 18000000
+            nextDeparture.diff(now).toMillis()
         )
 
         return {...bus,
