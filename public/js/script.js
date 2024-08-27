@@ -70,13 +70,12 @@ const initWebSocket = () => {
 }
 
 const updateTime = () => {
-    const currentTimeElement = document.getElementById("current-time")
-    const now = new Date()
-    currentTimeElement.textContent = now.toTimeString().split(" ")[0]
-
     setTimeout(() => {
         updateTime()
     }, 1000);
+    const currentTimeElement = document.getElementById("current-time")
+    const now = new Date()
+    currentTimeElement.textContent = now.toTimeString().split(" ")[0]
 }
 
 const init = async() => {
